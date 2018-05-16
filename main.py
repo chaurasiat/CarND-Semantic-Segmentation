@@ -32,8 +32,16 @@ def load_vgg(sess, vgg_path):
     vgg_layer3_out_tensor_name = 'layer3_out:0'
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
+    tf.save_model.loader.load(sess,[vgg_tag],vgg_tag)
+    graph=tf.get_default_graph()
+    input_weight=graph.get_tensor_by_name(vgg_input_tensor_name)
+    keep_prob=graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
+    layer_3=graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
+    layer_4=graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
+    layer_7=graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
+
     
-    return None, None, None, None, None
+    return input_weight, keep_prob, layer_3, layer_4, layer_7   
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -47,7 +55,36 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    return None
+     conv_1x1_l7 = tf.layers.conv2d(vgg_layer7_out,num_classes,1, 1,padding = 'same',
+                                     kernel_initializer = tf.random_normal_initializer(stddev=0.01),
+                                     kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3),
+                                     name='conv_1x1_l7')
+    layer_7_upsampled_output=tf.layers.conv2d_transpose(conv_1x1_l7,num_classes,4,2,padding = 'same',kernel_initializer = tf.random_normal_initializer(stddev=0.01),
+                                     kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3),
+                                     name='layer_7_upsampled_output')
+     conv_1x1_l4 = tf.layers.conv2d(vgg_layer4_out,num_classes,1, 1,padding = 'same',
+                                     kernel_initializer = tf.random_normal_initializer(stddev=0.01),
+                                     kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3),
+                                     name='conv_1x1_l4')
+    
+     output_4_7 = tf.add(layer_7_upsampled_output, conv_1x1_l4)
+     output_4_7_upsampled_output=tf.layers.conv2d_transpose(output_4_7,num_classes,4,2,padding = 'same',kernel_initializer = tf.random_normal_initializer(stddev=0.01),
+                                     kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3),
+                                     name='output_4_7_upsampled_output')
+    conv_1x1_l3 = tf.layers.conv2d(vgg_layer3_out,num_classes,1, 1,padding = 'same',
+                                     kernel_initializer = tf.random_normal_initializer(stddev=0.01),
+                                     kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3),
+                                     name='conv_1x1_l3')
+    output_47_3=tf.add(output_4_7_upsampled_output, conv_1x1_l3)
+    output_47_3_upsampled_output=tf.layers.conv2d_transpose(output_47_3,num_classes,16,8,padding = 'same',kernel_initializer = tf.random_normal_initializer(stddev=0.01),
+                                     kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3),
+                                     name='output_47_3_upsampled_output')
+
+    
+    
+
+    
+    return output_47_3_upsampled_output
 tests.test_layers(layers)
 
 
@@ -61,7 +98,14 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     # TODO: Implement function
-    return None, None, None
+     logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    labels = tf.reshape(correct_label, (-1, num_classes))
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits,labels=labels))
+    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
+    return logits, train_op, cross_entropy_loss
+
+
+   # return None, None, None
 tests.test_optimize(optimize)
 
 
