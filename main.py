@@ -134,8 +134,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         print("EPOCH {} ...".format(i + 1))
         for image, label in get_batches_fn(batch_size):
             _, loss = sess.run([train_op, cross_entropy_loss],
-                               feed_dict={input_image: image, correct_label: label, keep_prob: 0.5,learning_rate: 0.0009})
-            print("Loss: = {:.3f}".format(loss))
+                               feed_dict={input_image: image, correct_label: label, keep_prob: 0.7,learning_rate: 0.0004})
+        print("Loss: = {:.3f}".format(loss))
         print()
     #pass
 tests.test_train_nn(train_nn)
@@ -166,8 +166,8 @@ def run():
         learning_rate = tf.placeholder(tf.float32, name="learning_rate")
         correct_label = tf.placeholder(tf.float32, [None, image_shape[0], image_shape[1], num_classes],
                                        name="correct_label")
-        epochs = 8
-        batch_size = 1
+        epochs = 6
+        batch_size = 5
 
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_weight, keep_prob, layer_3, layer_4, layer_7=load_vgg(sess,vgg_path)
